@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        img {
+            width: 80%;
+            height: auto;
+            border: 2px solid #333;
+            margin-bottom: 20px;
+            display: none; /* Initially hidden */
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .message {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #007BFF;
+        }
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            text-align: left;
+            border-radius: 5px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        input[type="email"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #sendEmailModal button {
+            display: block;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-Time Attendance System</h1>
+    <div>
+        <img id="videoFeed" alt="Camera Feed">
+    </div>
+    <div>
+        <button id="startButton" onclick="startCamera()">Start Camera</button>
+        <button id="stopButton" onclick="stopCamera()" disabled>Stop Camera</button>
+        <button id="exportButton" onclick="exportCSV()">Export CSV</button>
+        <button id="emailButton" onclick="openEmailModal()">Send Email</button>
+    </div>
+    <div class="message" id="statusMessage"></div>
+
+    <!-- Email Input Modal -->
+    <div id="sendEmailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEmailModal()">&times;</span>
+            <h2>Send Attendance Report</h2>
+            <label for="emailInput">Receiver's Email:</label>
+            <input type="email" id="emailInput" placeholder="Enter receiver's email">
+            <button onclick="sendEmail()">Send Email</button>
+        </div>
+    </div>
+
+    <script>
+        const videoFeed = document.getElementById('videoFeed');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusMessage = document.getElementById('statusMessage');
+        const emailModal = document.getElementById('sendEmailModal');
+        const emailInput = document.getElementById('emailInput');
+
+        async function startCamera() {
+            statusMessage.textContent = "Starting camera...";
+            const response = await fetch('/start_camera');
+            const result = await response.json();
+            if (result.status) {
+                videoFeed.src = '/video_feed';
+                videoFeed.style.display = "block";
+                startButton.disabled = true;
+                stopButton.disabled = false;
+                statusMessage.textContent = "Camera started successfully!";
+            } else {
+                statusMessage.textContent = "Failed to start the camera.";
+            }
+        }
+
+        async function stopCamera() {
+            statusMessage.textContent = "Stopping camera...";
+            const response = await fetch('/stop_camera');
+            const result = await response.json();
+            if (result.status) {
+                videoFeed.src = "";
+                videoFeed.style.display = "none";
+                startButton.disabled = false;
+                stopButton.disabled = true;
+                statusMessage.textContent = "Camera stopped successfully!";
+            } else {
+                statusMessage.textContent = "Failed to stop the camera.";
+            }
+        }
+
+        async function exportCSV() {
+            statusMessage.textContent = "Exporting CSV...";
+            const response = await fetch('/export_csv');
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "attendance.csv";
+                a.click();
+                statusMessage.textContent = "CSV exported successfully!";
+            } else {
+                statusMessage.textContent = "No attendance data to export.";
+            }
+        }
+
+        function openEmailModal() {
+            emailModal.style.display = "block";
+        }
+
+        function closeEmailModal() {
+            emailModal.style.display = "none";
+        }
+
+        async function sendEmail() {
+            const email = emailInput.value;
+
+            if (!email) {
+                alert("Please enter a valid email address.");
+                return;
+            }
+
+            statusMessage.textContent = "Sending email...";
+
+            const response = await fetch('/send_email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ receiver_email: email })
+            });
+
+            const result = await response.json();
+            if (result.status) {
+                statusMessage.textContent = "Email sent successfully!";
+            } else {
+                statusMessage.textContent = "Failed to send email: " + result.error;
+            }
+
+            closeEmailModal();
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            if (event.target == emailModal) {
+                closeEmailModal();
+            }
+        }
+    </script>
+</body>
+</html>
+
+
