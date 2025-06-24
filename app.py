@@ -24,9 +24,9 @@ known_face_names = []
 marked_attendance = {}
 
 # Email Configuration
-SENDER_EMAIL = "anujladkat8@gmail.com"
-SENDER_PASSWORD = "vgrtpagsshoawpch"
-RECEIVER_EMAIL = "anujladkat9@gmail.com"
+SENDER_EMAIL = "sender-email"
+SENDER_PASSWORD = "sender-password"
+RECEIVER_EMAIL = "receiver-email"
 
 # Database setup
 DATABASE_PATH = "attendance.db"
